@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase.client";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -11,7 +11,7 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: "${window.location.origin}/auth/callback",
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           hd: "iiitdmj.ac.in",
         },
