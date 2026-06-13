@@ -83,7 +83,7 @@ jobs:
               
               // Acknowledge the command was seen
               try {
-                await github.rest.issues.createReactionForIssueComment({
+                await github.rest.reactions.createForIssueComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   comment_id: payload.comment.id,
