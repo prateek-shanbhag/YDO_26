@@ -83,7 +83,7 @@ jobs:
               
               // Acknowledge the command was seen
               try {
-                await github.rest.reactions.createForIssueComment({
+                await github.rest.issues.createReactionForIssueComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   comment_id: payload.comment.id,
@@ -148,8 +148,9 @@ jobs:
                 });
               }
 
+              
               // NEW COMMAND: /assign-to @user (Maintainers only)
-
+              
               if (isAssignTo) {
                 if (!isMaintainer) {
                   await github.rest.issues.createComment({
@@ -174,7 +175,7 @@ jobs:
                   return;
                 }
 
-                // Stretch Goal: Verify the users actually commented /assign
+                // Verify the users actually commented /assign
                 const { data: comments } = await github.rest.issues.listComments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -207,10 +208,10 @@ jobs:
                 }
               }
 
+
               // NEW COMMAND: /unassign [@user] (Maintainers only)
 
               if (isUnassign) {
-
                 if (!isMaintainer) {
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
@@ -225,14 +226,34 @@ jobs:
                 let usersToUnassign = mentions.map(m => m.substring(1));
 
                 if (usersToUnassign.length === 0) {
-                  usersToUnassign.push(commenter);
+                  // find out who is actually assigned
+                  const { data: currentIssue } = await github.rest.issues.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number
+                  });
+                  
+                  const currentAssignees = currentIssue.assignees.map(a => a.login);
+                  
+                  // If no one is assigned, exit cleanly to prevent a 422 error
+                  if (currentAssignees.length === 0) {
+                    console.log('No assignees to remove. Exiting cleanly.');
+                    return;
+                  }
+                  
+                  // Default to unassigning everyone currently assigned to the issue
+                  usersToUnassign = currentAssignees;
                 }
 
-                await github.rest.issues.removeAssignees({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  assignees: usersToUnassign
-                });
+                try {
+                  await github.rest.issues.removeAssignees({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    assignees: usersToUnassign
+                  });
+                } catch (error) {
+                  console.error('Failed to unassign users. They might not be assigned to the issue.', error);
+                }
               }
             }
